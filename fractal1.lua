@@ -154,8 +154,8 @@ while math.huge do
 	while lines <= 888 do
 		this_time=time()/1000
 		if mode == '1' then 
-			xr=(this_time%radius)*cos(1.0/sin(this_time))--radius/2-4
-			yr=(this_time%radius)*sin(1.0/cos(this_time))--radius/2-4
+			xr=(this_time%(radius-radius/8))*cos(1.0/sin(this_time))--radius/2-4
+			yr=(this_time%(radius-radius/8))*sin(1.0/cos(this_time))--radius/2-4
 		else
 			xr=0
 			yr=0
@@ -164,8 +164,8 @@ while math.huge do
 		a= 0
 		for i = 1, lines do
 			if mode == '1' then 
-				xr=(this_time%radius)*cos(1.0/sin(this_time))
-				yr=(this_time%radius)*sin(1.0/cos(this_time))
+				xr=(this_time%(radius-radius/8))*cos(1.0/sin(this_time))
+				yr=(this_time%(radius-radius/8))*sin(1.0/cos(this_time))
 			else
 				xr=0
 				yr=0
