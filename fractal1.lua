@@ -1,25 +1,82 @@
 local gpu = require('component').gpu
+local computer=require('computer')
+local pullSignal = computer.pullSignal
+local term=require('term')
 local xor = require('bit32').bxor
+local math=require('math')
 local abs=require('math').abs
 local cos=require('math').cos
 local sin=require('math').sin
 local char=require('unicode').char
+local os=require('os')
+local time, this_time = os.time, 0
 local center,max_x,max_y = 0, gpu.getResolution()
 local ys,xs = max_y*4, max_x*2
 local center_x=xs//2-2
 local center_y = ys//2-2
-local screen={}
+
 local radius = ys//2-10
 local x,y=0,0
 --опишем более быстрое однобитное ксорирование
-local revers={} revers[0]=1 revers[1]=0
-local chars={}
-local ch_y = math.floor(max_y)
-local ch_x = math.floor(max_x)
+local reverse={} reverse[0]=1 reverse[1]=0
+local chars,screen={},{}
+local ch_y,ch_x = (max_y//1),(max_x//1)
+local xr,yr=0,0
+local mode='0'
+actions={}
+events = {key_up='keyUp'}
+--chars init
+for y=1,ch_y do
+	chars[y]={}
+end
+--screen init
+for y=1.0,ys do
+	screen[y]={}
+end
+--перехват ивентов. надстройка над ОС
+function computer.pullSignal(...)
+    local e = {pullSignal(...)}
+       if events[e[1]] then
+           return actions[events[e[1]]](e)
+       end
+   return true --table.unpack(e) --true --table.unpack(e) 
+end
+-----------------------------------
+actions.t=function()
+    --tetminate
+    mode='terminate'
+    term.clear()
+    screen=nil
+    chars=nil
+    computer.pullSignal = pullSignal
+    evo=nil
+    return os.exit()
+end
+actions['1']=function()
+ mode='0'
+ return true
+end
+actions['2']=function()
+mode = '1'
+return true
+end
+---------------------------------
+actions.keyUp=function(e)
+    local key=math.floor(e[3])
+    if key > 128 then
+        key = string.lower(ru_keys[key])
+    else
+        key=string.lower(string.char(key))
+    end
+    if actions[key] then
+        return actions[key](e)
+    end
+    return true
+end
+
 
 local function cls_chr()
     for y = 1,ch_y do 
-        chars[y]={}
         for x = 1,ch_x do 
             chars[y][x] = 0x2800
         end
@@ -27,20 +84,18 @@ local function cls_chr()
 end
 
 local function cls_scr()    
-screen = {}
-for y=1.0,ys do
-	screen[y]={}
-	for x=1.0,xs do
-		screen[y][x]=0
+	for y=1.0,ys do
+		for x=1.0,xs do
+			screen[y][x]=0
+		end
 	end
-end
 end
 
 --опишем биткарту шрифта брайля
 local bits = {} 
-bits[1]={1,8,2,16,4,32,64,128}
-bits[0]={0,0,0,0,0,0,0,0}
-bits[-1]={-1,-8,-2,-16,-4,-32,-64,-128}
+	bits[1]={1,8,2,16,4,32,64,128}
+	bits[0]={0,0,0,0,0,0,0,0}
+	bits[-1]={-1,-8,-2,-16,-4,-32,-64,-128}
 --попробуем описать трансформацию значений массива в шрифт брайля
 local function toUnicode()
   local ch_x,ch_y,yy,xx=0,0,0,0
@@ -77,14 +132,14 @@ local function pseudo_draw(x1,y1,x,y)--вычисляет координаты �
 		y_step=y_step*abs(y-y1)/abs(x-x1)
 		y_plot=y1
 		for x_plot = x1,x,x_step do
-			screen[center_y+y_plot//1+1][center_x+x_plot//1+1]=revers[screen[center_y+y_plot//1+1][center_x+x_plot//1+1]]
+			screen[center_y+y_plot//1+1][center_x+x_plot//1+1]=reverse[screen[center_y+y_plot//1+1][center_x+x_plot//1+1]]
 			y_plot=y_plot+y_step
 		end
 	else
 		x_step=x_step*abs(x-x1)/abs(y-y1)
 		x_plot=x1
 		for y_plot = y1,y,y_step do
-			screen[center_y+y_plot//1+1][center_x+x_plot//1+1]=revers[screen[center_y+y_plot//1+1][center_x+x_plot//1+1]]
+			screen[center_y+y_plot//1+1][center_x+x_plot//1+1]=reverse[screen[center_y+y_plot//1+1][center_x+x_plot//1+1]]
 			x_plot=x_plot+x_step
 		end
 	end
@@ -92,16 +147,33 @@ end
 
 cls_scr() cls_chr()
 local x,y,a,angle,step,f,lines=0,0,0,0,17,2,0
+
+function main()
 while math.huge do
-	lines=512
+	lines=512.0
 	while lines <= 888 do
+		this_time=time()/1000
+		if mode == '1' then 
+			xr=(this_time%radius)*cos(1.0/sin(this_time))--radius/2-4
+			yr=(this_time%radius)*sin(1.0/cos(this_time))--radius/2-4
+		else
+			xr=0
+			yr=0
+		end
 		angle=f*math.pi/lines
 		a= 0
 		for i = 1, lines do
+			if mode == '1' then 
+				xr=(this_time%radius)*cos(1.0/sin(this_time))
+				yr=(this_time%radius)*sin(1.0/cos(this_time))
+			else
+				xr=0
+				yr=0
+			end
 			x=radius*cos(a)
 			y=radius*sin(a)
 			--pseudo_draw(center_x/2,center_y/2,x,y)
-			pseudo_draw(0,0,x,y)
+			pseudo_draw(xr,yr,x,y)
 			a=a+angle
 		end
 
@@ -115,3 +187,5 @@ while math.huge do
 	end
 	if step <60 then step=step+3 else step=33 end
 end
+end
+main()
