@@ -119,7 +119,7 @@ local function showMustGoOne()
         for x in pairs(chars[y])do
             show = show..char(chars[y][x])    
         end
-        gpu.set(1,y,show)
+        gpu.set(1,y+1,show)
     end
     return true
 end
@@ -149,6 +149,7 @@ cls_scr() cls_chr()
 local x,y,a,angle,step,f,lines=0,0,0,0,17,2,0
 
 function main()
+	gpu.set(1,1,"Press key: (1) - mode 1, (2) - mode 2, (T) - for exit")
 while math.huge do
 	lines=512.0
 	while lines <= 888 do
